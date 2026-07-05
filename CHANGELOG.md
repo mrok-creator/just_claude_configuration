@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [0.2.1] — 2026-07-06
+
+### Added
+- `.github/CODEOWNERS` requiring `@mrok-creator` review on all pull requests.
+
 ## [0.2.0] — 2026-07-05
 
 ### Changed

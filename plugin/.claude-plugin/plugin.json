@@ -1,7 +1,7 @@
 {
   "name": "just-claude",
   "displayName": "Just Claude Configuration",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Battle-tested Claude Code configuration for backend projects: guard hooks with anti-loop denial cap, session hygiene, memory contour, /feature workflow, and /setup-project self-installation.",
   "author": { "name": "Kasianenko Oleksandr" },
   "license": "MIT",
