@@ -1,0 +1,13 @@
+{
+  "name": "just-claude",
+  "displayName": "Just Claude Configuration",
+  "version": "0.2.0",
+  "description": "Battle-tested Claude Code configuration for backend projects: guard hooks with anti-loop denial cap, session hygiene, memory contour, /feature workflow, and /setup-project self-installation.",
+  "author": { "name": "Kasianenko Oleksandr" },
+  "license": "MIT",
+  "homepage": "https://github.com/mrok-creator/just_claude_configuration",
+  "repository": "https://github.com/mrok-creator/just_claude_configuration",
+  "keywords": ["backend", "hooks", "guards", "workflow", "memory", "setup"],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

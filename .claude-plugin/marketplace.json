@@ -1,0 +1,18 @@
+{
+  "name": "just-claude-configuration",
+  "owner": { "name": "Kasianenko Oleksandr" },
+  "description": "Battle-tested Claude Code configuration for backend projects: guard hooks, session hygiene, memory contour, /feature workflow, self-installing setup skills.",
+  "plugins": [
+    {
+      "name": "just-claude",
+      "displayName": "Just Claude Configuration",
+      "source": "./plugin",
+      "description": "Guard hooks with anti-loop denial cap, session hygiene (compaction save/recovery, long-session nudges), memory contour, plan-test-code-review /feature workflow, and /setup-project which adapts everything to your repo (CLAUDE.md generation or merge).",
+      "version": "0.2.0",
+      "author": { "name": "Kasianenko Oleksandr" },
+      "license": "MIT",
+      "keywords": ["backend", "hooks", "guards", "workflow", "memory", "setup"],
+      "category": "workflow"
+    }
+  ]
+}

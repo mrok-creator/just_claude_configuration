@@ -1,0 +1,202 @@
+# presets.yml — /feature workflow presets and flag defaults
+#
+# Single source consumed by the /feature command (.claude/commands/feature.md).
+# This file + feature.md ARE the spec (the original implementation spec file is
+# not shipped; §N markers are stable section anchors only).
+#
+# The step skeleton (fixed; ids 1..12, step 5 removed — 11 steps remain):
+#   1  intake          intake/analysis -> intake.md
+#   2  plan            plan/architecture (RFC) -> plan.md
+#   3  gate_plan       GATE 1 — plan approval -> approval.json
+#   4  tests           write tests from approved intent -> tests
+#   6  code            minimal production logic, authored tests green -> touched.txt
+#   7  validate        project validate command on touched + scoped tests -> validation.md
+#   8  review          independent verification -> review-report.json
+#   9  rework          if BLOCKED, route to owner role; budget = max 3 cycles/step
+#   10 learn           distilled knowledge -> .cc_settings/.memory/buffer.md
+#   11 gate_commit     GATE 2 — final approval -> emit commit message, clear flow-state
+#   12 summary         what/tests/checks/review/verdict/commit-msg/files/risks -> summary.md
+#
+# step ids used everywhere below are the integers 1..12.
+
+# ---------------------------------------------------------------------------
+# Flag defaults (spec §2). The command applies these unless a CLI flag overrides.
+# ---------------------------------------------------------------------------
+defaults:
+  tests: true            # --tests / --no-tests        (default ON)
+  mode: balanced         # --mode productive|balanced|efficient (default balanced)
+  codex: false           # --codex                     (default OFF — optional; requires the codex CLI; cc-reviewer/test-author are the defaults)
+  auto: false            # --auto                      (absent = controlled; gates 3 & 11 ask)
+  preset: feature        # bare /feature == full preset
+
+# ---------------------------------------------------------------------------
+# Execution modes (spec §3). Roles activate from balanced and up.
+# ---------------------------------------------------------------------------
+modes:
+  efficient:
+    roles_enabled: false           # Lead runs steps inline / minimal subagents
+    ambient_default_flow: false    # default ambient behavior fully disabled
+    intermediate_checkpoints: false
+    research_passes: 1
+    codex: explicit_only           # Codex only on explicit --codex
+    models:
+      navigation: haiku
+      logic: sonnet
+      planning: opus-on-demand
+    note: >-
+      Ambient default-behavior rules are NOT applied in efficient mode.
+      Essential steps still run: plan, approval, validation, commit.
+  balanced:
+    roles_enabled: true            # V1 roles strictly invoked on every command call
+    ambient_default_flow: true
+    intermediate_checkpoints: true
+    research_passes: 1
+    models:
+      planner: opusplan
+      architect: opus
+      executor: sonnet
+      navigation: sonnet
+      planning: opus-on-demand
+  productive:
+    roles_enabled: true
+    ambient_default_flow: true
+    intermediate_checkpoints: true   # all checkpoints
+    research_passes: 2
+    models:
+      planner: opus
+      architect: opus
+      executor: opus
+      navigation: haiku
+      planning: opus
+
+# ---------------------------------------------------------------------------
+# Presets (spec §8). `steps` is the explicit ordered step set the preset runs.
+# `tests` documents the preset's test posture; `conditional_steps` and
+# `notes` carry the spec's footnotes. --steps on the CLI overrides `steps`.
+# ---------------------------------------------------------------------------
+presets:
+  feature:
+    description: Full feature flow — all 11 steps.
+    steps: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12]
+    tests: on
+    notes: full
+
+  quick:
+    description: Lean flow, no tests.
+    steps: [1, 2, 3, 6, 7, 12]
+    tests: off
+    notes: lean
+
+  bugfix:
+    description: Bugfix with regression test.
+    steps: [1, 2, 3, 4, 6, 7, 11, 12]
+    tests: regression
+
+  refactor:
+    description: Refactor; step 1 only when business context exists.
+    steps: [2, 3, 4, 6, 7, 11, 12]
+    conditional_steps:
+      1: business_context   # run step 1 only if _inbox/memory/tasks has relevant business context
+    tests: ask_on_start     # ask the user at start; in --auto default ON
+    tests_auto_default: on
+    notes: >-
+      Tests posture is clarified with the user at start; under --auto it defaults ON.
+
+  tests:
+    description: TDD / coverage-focused.
+    steps: [1, 4, 6, 7, 11, 12]
+    tests: tdd_coverage
+
+  docs:
+    description: Documentation flow; step 6 is /doc-sync.
+    steps: [1, 2, 3, 6, 11, 12]
+    tests: off
+    step_overrides:
+      6: doc-sync           # step 6 means run /doc-sync, not code implementation
+    notes: step 6 = /doc-sync
+
+  research:
+    description: Research only — no code, no commit.
+    steps: [1, 2, 11]
+    tests: off
+    notes: no code / no commit
+
+  hotfix:
+    description: Fast production fix; step 1 only when business context exists.
+    steps: [2, 6, 7, 12]
+    conditional_steps:
+      1: business_context
+    tests: off
+    allow_auto: true
+    notes: --auto allowed
+
+# ---------------------------------------------------------------------------
+# Ambient default behavior (spec §6) — runs WITHOUT /feature for a plain coding
+# task. Disabled entirely in efficient mode. Pure chat/questions do not trigger.
+# ---------------------------------------------------------------------------
+ambient_default_flow:
+  steps: [2, 3, 6, 7, 12]
+  roles: as_needed          # Lead + Executor only, on demand
+  disabled_in_modes: [efficient]
+  trigger: coding_or_edit_task   # NOTE: no trigger hook is shipped (default-flow.sh
+                                 # does not exist) — ambient flow activates only by
+                                 # the orchestrator's own judgement, not by a hook
+
+# ---------------------------------------------------------------------------
+# Gates (spec §9). step 3 = plan approval, step 11 = final approval (gate 2).
+# ---------------------------------------------------------------------------
+gates:
+  controlled:                # default (no --auto)
+    step_3: pause_and_ask    # native Yes/No or chat confirmation
+    step_11: pause_and_ask   # show commit message; wait for user before summary
+  auto:                      # --auto
+    step_3: auto_approve_if_in_scope    # else stop + ask
+    step_11: auto_approve_emit_commit   # Conventional Commits + ticket; no git ops
+  after_gate_2: delete_flow_state      # unconditional; approved/auto/rejected all clear it
+  step_11_always_present: true
+
+# ---------------------------------------------------------------------------
+# Rework budget (spec §1.9, §4 rework routing).
+# ---------------------------------------------------------------------------
+rework:
+  max_cycles_per_step: 3
+  routing:                   # spec §4 — BLOCKED finding -> owner role
+    architecture: architect
+    requirements: planner
+    tests: test-author
+    bug: executor
+    docs_context: lead
+
+# ---------------------------------------------------------------------------
+# Codex executor-swap (spec §5) — OPTIONAL. --codex swaps the EXECUTOR of steps
+# 4 and 8; it does not add steps. Requires the codex CLI on PATH; without the
+# flag (or without the CLI) test-author and cc-reviewer own these steps.
+# intake.md + plan.md are always passed to Codex.
+# ---------------------------------------------------------------------------
+codex:
+  enabled_by: flag           # --codex (opt-in); deploy step-scripts force this off
+  swaps:
+    step_4: codex            # tests authored by Codex instead of Test Author
+    step_8: codex-verifier   # review by Codex Verifier instead of CC-reviewer
+  required_context: [intake.md, plan.md]   # both always passed in (spec §5)
+  wrapper: .claude/setup/codex-exec.sh
+  fallback_when_unavailable: claude-code    # Test Author / CC-reviewer + warning in summary
+
+# ---------------------------------------------------------------------------
+# Task state artifacts (spec §10). Written under .cc_settings/.memory/tasks/<slug>/.
+# STATE.md updated to current task/step.
+# ---------------------------------------------------------------------------
+artifacts:
+  base: .cc_settings/.memory/tasks/<slug>/
+  files:
+    - intake.md
+    - plan.md
+    - approval.json
+    - touched.txt
+    - validation.md
+    - review-report.json
+    - decisions.md
+    - summary.md
+    - handoff.md
+  state_file: .cc_settings/.memory/STATE.md
+  learning_buffer: .cc_settings/.memory/buffer.md   # step 10 target (never basic-memory directly)
